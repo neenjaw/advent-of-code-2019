@@ -3,7 +3,7 @@ defmodule Day02.MixProject do
 
   def project do
     [
-      app: :day_02,
+      app: :intcode,
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
