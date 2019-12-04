@@ -33,26 +33,8 @@ defmodule Day04 do
   def is_valid(_), do: false
 
   def is_still_valid(password) do
-    doubles =
-      password
-      |> Enum.chunk_every(2, 1, :discard)
-      |> Enum.filter(fn
-        [a,a] -> true
-        [_,_] -> false
-      end)
-      |> Enum.map(fn [a,_] -> a end)
-
-    max_double =
-      case doubles do
-        [] -> -1
-        l -> Enum.max(l)
-      end
-
-    maxes =
-      doubles
-      |> Enum.filter(fn n -> n == max_double end)
-      |> Enum.count()
-
-    maxes == 1
+    password
+    |> Enum.chunk_by(& &1)
+    |> Enum.any?(&(length(&1) == 2))
   end
 end

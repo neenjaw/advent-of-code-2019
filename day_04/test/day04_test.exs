@@ -44,12 +44,12 @@ defmodule Day04Test do
     assert Day04.check_two(password)
   end
 
-  # test "problem" do
-  #   assert Day04.problem() == 931
-  # end
+  test "problem" do
+    assert Day04.problem() == 931
+  end
 
 
-  # test "problem2" do
-  #   assert Day04.problem2() != 481
-  # end
+  test "problem2" do
+    assert Day04.problem2() |> IO.inspect(label: "53") != 481
+  end
 end
