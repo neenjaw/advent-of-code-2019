@@ -126,18 +126,14 @@ defmodule Runner do
         {a, b}
       end
 
-    answers =
-      possibilities
-      |> Stream.map(fn {a, b} ->
-        @instructions
-        |> List.replace_at(1, a)
-        |> List.replace_at(2, b)
-      end)
-      |> Task.async_stream(&test_instructions(&1), max_concurrency: 25)
-      |> Stream.map(fn {:ok, e} -> e end)
-      |> Enum.to_list()
-
-    answers
+    possibilities
+    |> Stream.map(fn {a, b} ->
+      @instructions
+      |> List.replace_at(1, a)
+      |> List.replace_at(2, b)
+    end)
+    |> Task.async_stream(&test_instructions(&1), max_concurrency: 25)
+    |> Stream.map(fn {:ok, e} -> e end)
     |> Enum.find(fn
       {_, _} -> true
       _ -> false
