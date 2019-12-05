@@ -99,9 +99,9 @@ defmodule Intcode do
   end
 
   # write
-  def handle_command(op_agent, 4, _mode_opts) do
-    {position} = IA.get_op_params(op_agent, 1)
-    value = IA.get_at_position(op_agent, position)
+  def handle_command(op_agent, 4, mode_opts) do
+    {r} = IA.get_op_params(op_agent, 1)
+    value = get_parameter(op_agent, mode_opts, :first, r)
 
     value |> inspect() |> IO.puts()
 
@@ -112,9 +112,10 @@ defmodule Intcode do
   def handle_command(op_agent, 5, mode_opts) do
     {x, r} = IA.get_op_params(op_agent, 2)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
+    r_val = get_parameter(op_agent, mode_opts, :second, r)
 
     if x_val != 0 do
-      IA.set_pointer(op_agent, r)
+      IA.set_pointer(op_agent, r_val)
       :jump
     else
       :cont
@@ -125,9 +126,10 @@ defmodule Intcode do
   def handle_command(op_agent, 6, mode_opts) do
     {x, r} = IA.get_op_params(op_agent, 2)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
+    r_val = get_parameter(op_agent, mode_opts, :second, r)
 
     if x_val == 0 do
-      IA.set_pointer(op_agent, r)
+      IA.set_pointer(op_agent, r_val)
       :jump
     else
       :cont

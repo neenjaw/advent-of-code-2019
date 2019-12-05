@@ -105,7 +105,7 @@ defmodule IntcodeTest do
     assert capture_io(program_3) == "0\n"
   end
 
-  @tag :pending
+  # @tag :pending
   test "jump - position mode" do
     program = fn i ->
       Intcode.run([3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], testing: true, test_input: i)
@@ -134,5 +134,22 @@ defmodule IntcodeTest do
 
     program_3 = fn -> program.(["-1\n"]) end
     assert capture_io(program_3) == "1\n"
+  end
+
+  test "larger" do
+    code = [3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99]
+
+    program = fn i ->
+      Intcode.run(code, testing: true, test_input: i)
+    end
+
+    program_1 = fn -> program.(["7\n"]) end
+    assert capture_io(program_1) == "999\n"
+
+    program_2 = fn -> program.(["8\n"]) end
+    assert capture_io(program_2) == "1000\n"
+
+    program_3 = fn -> program.(["9\n"]) end
+    assert capture_io(program_3) == "1001\n"
   end
 end
