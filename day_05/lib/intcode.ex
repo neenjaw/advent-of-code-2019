@@ -6,40 +6,46 @@ defmodule Intcode do
   ## Public module interface
 
   def run(op_list, opts \\ []) when is_list(op_list) do
-    testing = Keyword.get(opts, :testing, false)
+    cond do
+      Keyword.get(opts, :testing, false) -> do_run_wrap_testing(op_list, &do_run/2, opts)
+      true -> do_run(op_list, opts)
+    end
+  end
 
-    opts =
-      unless testing do
-        opts
-      else
-        init_test_input(opts)
-      end
-
+  def do_run(op_list, opts) do
     {:ok, op_agent} = IA.init(op_list)
 
     result =
-      with :ok <- run_until_halt(op_agent, opts) do
+      with :ok <- compute(op_agent, opts) do
         IA.get_op_list(op_agent)
       else
         _ -> :error
       end
 
     Agent.stop(op_agent)
-    if testing, do: Keyword.get(opts, :test_input) |> Agent.stop()
 
     result
   end
 
-  def run_until_halt(op_agent, opts) do
+  def do_run_wrap_testing(op_list, runner, opts) do
+    opts = init_test_input(opts)
+    result = runner.(op_list, opts)
+
+    stop_test_input(opts)
+
+    result
+  end
+
+  defp compute(op_agent, opts) do
     cmd = IA.get_op_code(op_agent)
 
     case handle_command(op_agent, cmd, opts) do
       :cont ->
         IA.advance_to_next_command(op_agent, cmd)
-        run_until_halt(op_agent, opts)
+        compute(op_agent, opts)
 
       :jump ->
-        run_until_halt(op_agent, opts)
+        compute(op_agent, opts)
 
       :halt ->
         :ok
@@ -49,10 +55,8 @@ defmodule Intcode do
     end
   end
 
-  def handle_command(op_agent, command, mode_opts \\ [])
-
   # add
-  def handle_command(op_agent, 1, mode_opts) do
+  defp handle_command(op_agent, 1, mode_opts) do
     {x, y, r} = IA.get_op_params(op_agent)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     y_val = get_parameter(op_agent, mode_opts, :second, y)
@@ -71,7 +75,7 @@ defmodule Intcode do
   end
 
   # multiply
-  def handle_command(op_agent, 2, mode_opts) do
+  defp handle_command(op_agent, 2, mode_opts) do
     {x, y, r} = IA.get_op_params(op_agent)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     y_val = get_parameter(op_agent, mode_opts, :second, y)
@@ -82,7 +86,7 @@ defmodule Intcode do
   end
 
   # get input
-  def handle_command(op_agent, 3, mode_opts) do
+  defp handle_command(op_agent, 3, mode_opts) do
     input =
       unless Keyword.get(mode_opts, :testing, false) do
         IO.gets("integer input? ")
@@ -99,7 +103,7 @@ defmodule Intcode do
   end
 
   # write
-  def handle_command(op_agent, 4, mode_opts) do
+  defp handle_command(op_agent, 4, mode_opts) do
     {r} = IA.get_op_params(op_agent, 1)
     value = get_parameter(op_agent, mode_opts, :first, r)
 
@@ -109,7 +113,7 @@ defmodule Intcode do
   end
 
   # jump-if-true
-  def handle_command(op_agent, 5, mode_opts) do
+  defp handle_command(op_agent, 5, mode_opts) do
     {x, r} = IA.get_op_params(op_agent, 2)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     r_val = get_parameter(op_agent, mode_opts, :second, r)
@@ -123,7 +127,7 @@ defmodule Intcode do
   end
 
   # jump-if-false
-  def handle_command(op_agent, 6, mode_opts) do
+  defp handle_command(op_agent, 6, mode_opts) do
     {x, r} = IA.get_op_params(op_agent, 2)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     r_val = get_parameter(op_agent, mode_opts, :second, r)
@@ -137,7 +141,7 @@ defmodule Intcode do
   end
 
   # less than
-  def handle_command(op_agent, 7, mode_opts) do
+  defp handle_command(op_agent, 7, mode_opts) do
     {x, y, r} = IA.get_op_params(op_agent, 3)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     y_val = get_parameter(op_agent, mode_opts, :second, y)
@@ -152,7 +156,7 @@ defmodule Intcode do
   end
 
   # equal to
-  def handle_command(op_agent, 8, mode_opts) do
+  defp handle_command(op_agent, 8, mode_opts) do
     {x, y, r} = IA.get_op_params(op_agent, 3)
     x_val = get_parameter(op_agent, mode_opts, :first, x)
     y_val = get_parameter(op_agent, mode_opts, :second, y)
@@ -166,11 +170,11 @@ defmodule Intcode do
     :cont
   end
 
-  def handle_command(_op_agent, 99, _mode_opts) do
+  defp handle_command(_op_agent, 99, _mode_opts) do
     :halt
   end
 
-  def handle_command(op_agent, command_code, mode_opts) do
+  defp handle_command(op_agent, command_code, mode_opts) do
     [e, d, c, b, a | _] =
       command_code
       |> Integer.digits()
@@ -183,14 +187,14 @@ defmodule Intcode do
 
     mode_opts =
       mode_opts
-      |> add_param_mode(:first, c)
-      |> add_param_mode(:second, b)
-      |> add_param_mode(:third, a)
+      |> add_parameter_mode(:first, c)
+      |> add_parameter_mode(:second, b)
+      |> add_parameter_mode(:third, a)
 
     handle_command(op_agent, command, mode_opts)
   end
 
-  def add_param_mode(kw, param, v) do
+  defp add_parameter_mode(kw, param, v) do
     mode =
       case v do
         1 -> :immediate
@@ -200,12 +204,12 @@ defmodule Intcode do
     Keyword.put(kw, param, mode)
   end
 
-  def get_param_mode(kw, param) do
+  defp get_parameter_mode(kw, param) do
     Keyword.get(kw, param, :position)
   end
 
-  def get_parameter(op_agent, mode_opts, param, p) do
-    mode = get_param_mode(mode_opts, param)
+  defp get_parameter(op_agent, mode_opts, param, p) do
+    mode = get_parameter_mode(mode_opts, param)
 
     case mode do
       :position -> IA.get_at_position(op_agent, p)
@@ -215,7 +219,7 @@ defmodule Intcode do
 
   ###
   # Testing functions
-  def init_test_input(opts) do
+  defp init_test_input(opts) do
     {_, opts} =
       Keyword.get_and_update(opts, :test_input, fn input ->
         input = if input == nil, do: [], else: input
@@ -228,7 +232,11 @@ defmodule Intcode do
     opts
   end
 
-  def get_test_input(opts) do
+  defp stop_test_input(opts) do
+    Keyword.get(opts, :test_input) |> Agent.stop()
+  end
+
+  defp get_test_input(opts) do
     {input, _} =
       Keyword.get_and_update!(opts, :test_input, fn test_input ->
         v = Agent.get_and_update(test_input, fn [v | r] -> {v, r} end)
