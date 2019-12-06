@@ -1,4 +1,24 @@
 defmodule Day06 do
+  def run() do
+    {origin, orbit_map, objects} =
+      Orbits.Data.data()
+      |> massage()
+
+    {:ok, d_agent} = Agent.start(fn -> objects end)
+
+    traverse(orbit_map, origin, d_agent, 0)
+
+    checksum =
+      d_agent
+      |> Agent.get(fn distances -> distances end)
+      |> Enum.map(fn {_, d} -> d end)
+      |> Enum.sum()
+
+    Agent.stop(d_agent)
+
+    checksum
+  end
+
   def massage(data) do
     orbit_pairs =
       data
@@ -34,36 +54,9 @@ defmodule Day06 do
     end
   end
 
-  def run() do
-    {origin, orbit_map, objects} =
-      Orbits.Data.data()
-      |> massage()
-
-    {:ok, d_agent} = Agent.start(fn -> objects end)
-
-    traverse(orbit_map, origin, d_agent, 0)
-
-    checksum =
-      d_agent
-      |> Agent.get(fn distances -> distances end)
-      |> Enum.map(fn {_, d} -> d end)
-      |> Enum.sum()
-
-    Agent.stop(d_agent)
-
-    checksum
-  end
-
   def part2() do
     {_origin, orbit_map, _objects} =
       Orbits.Data.data()
-      # """
-      # COM)A
-      # A)B
-      # B)C
-      # C)SAN
-      # A)YOU
-      # """
       |> massage()
 
     bidirectional_orbit_map =
@@ -71,7 +64,7 @@ defmodule Day06 do
       |> make_bi_orbit_map()
       |> IO.inspect(label: "72")
 
-    find_path("YOU", bidirectional_orbit_map, 0, "SAN")
+    find_path("YOU", bidirectional_orbit_map, -1, "SAN")
   end
 
   def make_bi_orbit_map(map) do
@@ -94,11 +87,11 @@ defmodule Day06 do
   end
 
   def find_path(obj, orbit_map, count, target) do
-    edges = orbit_map[obj] #|> IO.inspect(label: "89")
+    edges = orbit_map[obj]
 
     cond do
       target in edges ->
-        {:ok, count-1}
+        {:ok, count}
 
       true ->
         Enum.find_value(edges, fn edge ->
@@ -107,8 +100,6 @@ defmodule Day06 do
           find_path(edge, orbit_map, count + 1, target)
         end)
     end
-
-
   end
 
   def remove_edge_from_possibilities(orbit_map, obj, edge) do
