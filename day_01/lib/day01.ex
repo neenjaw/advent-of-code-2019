@@ -105,12 +105,24 @@ defmodule Day01 do
   ]
 
   def calcFuel(mass) do
-    div(mass, 3) - 2
+    f =  div(mass, 3) - 2
+
+    cond do
+      f < 0 -> 0
+      true -> f
+    end
   end
 
-  def calcTotal() do
-    @input
-    |> Enum.map(&calcFuel/1)
-    |> Enum.sum()
+  def calcFuelForFuel(fuel_mass) do
+    fuel_mass
+    |> Stream.iterate(&calcFuel/1)
+    |> Enum.take_while(fn mass -> mass > 0 end)
+  end
+
+  def calcTotal(input \\ @input) do
+      input
+      |> Enum.map(&calcFuel/1)
+      |> Enum.flat_map(&calcFuelForFuel/1)
+      |> Enum.sum()
   end
 end
