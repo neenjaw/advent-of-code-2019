@@ -2,21 +2,24 @@ defmodule Intcode do
   @moduledoc false
 
   alias Intcode.Agent, as: IA
+  alias Intcode.Default, as: ID
+
+  @defaults [
+    {:get_input, &ID.get_input/0},
+    {:output, &ID.output/1},
+    {:debug, false}
+  ]
 
   ## Public module interface
 
   def run(op_list, opts \\ []) when is_list(op_list) do
-    cond do
-      Keyword.get(opts, :testing, false) -> do_run_wrap_testing(op_list, &do_run/2, opts)
-      true -> do_run(op_list, opts)
-    end
-  end
+    opts_map = Keyword.merge(@defaults, opts) |> Enum.into(%{})
 
-  def do_run(op_list, opts) do
+    # start state agent
     {:ok, op_agent} = IA.init(op_list)
 
     result =
-      with :ok <- compute(op_agent, opts) do
+      with :ok <- compute(op_agent, opts_map) do
         IA.get_op_list(op_agent)
       else
         _ -> :error
@@ -27,24 +30,11 @@ defmodule Intcode do
     result
   end
 
-  def do_run_wrap_testing(op_list, runner, opts) do
-    opts = init_test_input(opts)
-    result = runner.(op_list, opts)
-
-    stop_test_input(opts)
-
-    result
-  end
-
   defp compute(op_agent, opts) do
     cmd = IA.get_op_code(op_agent)
 
     case handle_command(op_agent, cmd, opts) do
       :cont ->
-        IA.advance_to_next_command(op_agent, cmd)
-        compute(op_agent, opts)
-
-      :jump ->
         compute(op_agent, opts)
 
       :halt ->
@@ -55,126 +45,7 @@ defmodule Intcode do
     end
   end
 
-  # add
-  defp handle_command(op_agent, 1, mode_opts) do
-    {x, y, r} = IA.get_op_params(op_agent)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    y_val = get_parameter(op_agent, mode_opts, :second, y)
-
-    case {x_val, y_val} do
-      {nil, _} ->
-        :error
-
-      {_, nil} ->
-        :error
-
-      {x_val, y_val} ->
-        IA.update_at_position(op_agent, r, x_val + y_val)
-        :cont
-    end
-  end
-
-  # multiply
-  defp handle_command(op_agent, 2, mode_opts) do
-    {x, y, r} = IA.get_op_params(op_agent)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    y_val = get_parameter(op_agent, mode_opts, :second, y)
-
-    IA.update_at_position(op_agent, r, x_val * y_val)
-
-    :cont
-  end
-
-  # get input
-  defp handle_command(op_agent, 3, mode_opts) do
-    input =
-      unless Keyword.get(mode_opts, :testing, false) do
-        IO.gets("integer input? ")
-      else
-        get_test_input(mode_opts)
-      end
-
-    {value, _} = input |> Integer.parse()
-    {position} = IA.get_op_params(op_agent, 1)
-
-    IA.update_at_position(op_agent, position, value)
-
-    :cont
-  end
-
-  # write
-  defp handle_command(op_agent, 4, mode_opts) do
-    {r} = IA.get_op_params(op_agent, 1)
-    value = get_parameter(op_agent, mode_opts, :first, r)
-
-    value |> inspect() |> IO.puts()
-
-    :cont
-  end
-
-  # jump-if-true
-  defp handle_command(op_agent, 5, mode_opts) do
-    {x, r} = IA.get_op_params(op_agent, 2)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    r_val = get_parameter(op_agent, mode_opts, :second, r)
-
-    if x_val != 0 do
-      IA.set_pointer(op_agent, r_val)
-      :jump
-    else
-      :cont
-    end
-  end
-
-  # jump-if-false
-  defp handle_command(op_agent, 6, mode_opts) do
-    {x, r} = IA.get_op_params(op_agent, 2)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    r_val = get_parameter(op_agent, mode_opts, :second, r)
-
-    if x_val == 0 do
-      IA.set_pointer(op_agent, r_val)
-      :jump
-    else
-      :cont
-    end
-  end
-
-  # less than
-  defp handle_command(op_agent, 7, mode_opts) do
-    {x, y, r} = IA.get_op_params(op_agent, 3)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    y_val = get_parameter(op_agent, mode_opts, :second, y)
-
-    if x_val < y_val do
-      IA.update_at_position(op_agent, r, 1)
-    else
-      IA.update_at_position(op_agent, r, 0)
-    end
-
-    :cont
-  end
-
-  # equal to
-  defp handle_command(op_agent, 8, mode_opts) do
-    {x, y, r} = IA.get_op_params(op_agent, 3)
-    x_val = get_parameter(op_agent, mode_opts, :first, x)
-    y_val = get_parameter(op_agent, mode_opts, :second, y)
-
-    if x_val == y_val do
-      IA.update_at_position(op_agent, r, 1)
-    else
-      IA.update_at_position(op_agent, r, 0)
-    end
-
-    :cont
-  end
-
-  defp handle_command(_op_agent, 99, _mode_opts) do
-    :halt
-  end
-
-  defp handle_command(op_agent, command_code, mode_opts) do
+  defp handle_command(op_agent, command_code, opts) do
     [e, d, c, b, a | _] =
       command_code
       |> Integer.digits()
@@ -185,64 +56,145 @@ defmodule Intcode do
       [d, e]
       |> Integer.undigits()
 
-    mode_opts =
-      mode_opts
-      |> add_parameter_mode(:first, c)
-      |> add_parameter_mode(:second, b)
-      |> add_parameter_mode(:third, a)
+    [p1_mode, p2_mode, p3_mode] =
+      [c, b, a]
+      |> Enum.map(&get_mode_from_code/1)
 
-    handle_command(op_agent, command, mode_opts)
+    command(op_agent, [command, p1_mode, p2_mode, p3_mode], opts)
   end
 
-  defp add_parameter_mode(kw, param, v) do
-    mode =
-      case v do
-        1 -> :immediate
-        0 -> :position
-      end
+  defp get_mode_from_code(0), do: :position
+  defp get_mode_from_code(1), do: :immediate
 
-    Keyword.put(kw, param, mode)
+  defp command(op_agent, [command, p1_mode, p2_mode, p3_mode], opts) do
+    [p1, p2, p3] =
+      # Create a tuple to determine the purpose / use of each param
+      [
+        List.duplicate(command, 3),
+        1..3,
+        [p1_mode, p2_mode, p3_mode],
+        IA.get_op_params(op_agent)
+      ]
+      |> Enum.zip()
+      |> Enum.map(fn
+        {cmd, n, :position, param} -> get_param_for_command(op_agent, cmd, n, param)
+        {_cmd, _, :immediate, param} -> param
+      end)
+
+    do_command(op_agent, [command, p1, p2, p3], opts)
   end
 
-  defp get_parameter_mode(kw, param) do
-    Keyword.get(kw, param, :position)
-  end
+  def get_param_for_command(_op_agent, cmd, 3, param) when cmd in [1, 2, 7, 8], do: param
+  # def get_param_for_command(_op_agent, cmd, 2, param) when cmd in [5, 6], do: param
+  def get_param_for_command(_op_agent, cmd, 1, param) when cmd in [3], do: param
+  def get_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_position(op_agent, position)
 
-  defp get_parameter(op_agent, mode_opts, param, p) do
-    mode = get_parameter_mode(mode_opts, param)
+  # add
+  defp do_command(op_agent, [1, x, y, r], opts) do
+    if opts.debug, do: IO.puts(">>> add")
 
-    case mode do
-      :position -> IA.get_at_position(op_agent, p)
-      :immediate -> p
+    case {x, y} do
+      {nil, _} ->
+        :error
+
+      {_, nil} ->
+        :error
+
+      {x, y} ->
+        IA.update_at_position(op_agent, r, x + y)
+        IA.advance_pointer(op_agent, 4)
+        :cont
     end
   end
 
-  ###
-  # Testing functions
-  defp init_test_input(opts) do
-    {_, opts} =
-      Keyword.get_and_update(opts, :test_input, fn input ->
-        input = if input == nil, do: [], else: input
+  # multiply
+  defp do_command(op_agent, [2, x, y, r], opts) do
+    if opts.debug, do: IO.puts(">>> mult")
 
-        {:ok, test_input} = Agent.start(fn -> input end)
+    IA.update_at_position(op_agent, r, x * y)
 
-        {input, test_input}
-      end)
-
-    opts
+    IA.advance_pointer(op_agent, 4)
+    :cont
   end
 
-  defp stop_test_input(opts) do
-    Keyword.get(opts, :test_input) |> Agent.stop()
+  # get input
+  defp do_command(op_agent, [3, r, _, _], %{get_input: get} = opts) do
+    if opts.debug, do: IO.puts(">>> get")
+
+    value = get.()
+
+    IA.update_at_position(op_agent, r, value)
+    IA.advance_pointer(op_agent, 2)
+    :cont
   end
 
-  defp get_test_input(opts) do
-    {input, _} =
-      Keyword.get_and_update!(opts, :test_input, fn test_input ->
-        v = Agent.get_and_update(test_input, fn [v | r] -> {v, r} end)
-        {v, test_input}
-      end)
+  # write
+  defp do_command(op_agent, [4, x, _, _], %{output: put} = opts) do
+    if opts.debug, do: IO.puts(">>> write")
 
-    input
+    x |> put.()
+
+    IA.advance_pointer(op_agent, 2)
+    :cont
+  end
+
+  # jump-if-true
+  defp do_command(op_agent, [5, x, r, _], opts) do
+    if opts.debug, do: IO.puts(">>> jump-if-true")
+
+    if x != 0 do
+      IA.set_pointer(op_agent, r)
+    else
+      IA.advance_pointer(op_agent, 3)
+    end
+
+    :cont
+  end
+
+  # jump-if-false
+  defp do_command(op_agent, [6, x, r, _], opts) do
+    if opts.debug, do: IO.puts(">>> jump-if-false")
+
+    if x == 0 do
+      IA.set_pointer(op_agent, r)
+    else
+      IA.advance_pointer(op_agent, 3)
+    end
+
+    :cont
+  end
+
+  # less than
+  defp do_command(op_agent, [7, x, y, r], opts) do
+    if opts.debug, do: IO.puts(">>> less than")
+
+    if x < y do
+      IA.update_at_position(op_agent, r, 1)
+    else
+      IA.update_at_position(op_agent, r, 0)
+    end
+
+    IA.advance_pointer(op_agent, 4)
+    :cont
+  end
+
+  # equal to
+  defp do_command(op_agent, [8, x, y, r], opts) do
+    if opts.debug, do: IO.puts(">>> equal")
+
+    if x == y do
+      IA.update_at_position(op_agent, r, 1)
+    else
+      IA.update_at_position(op_agent, r, 0)
+    end
+
+    IA.advance_pointer(op_agent, 4)
+    :cont
+  end
+
+  defp do_command(_op_agent, [99, _, _, _], opts) do
+    if opts.debug, do: IO.puts(">>> halt")
+
+    :halt
   end
 end

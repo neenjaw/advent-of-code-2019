@@ -1,8 +1,6 @@
 defmodule IntcodeTest do
   use ExUnit.Case
 
-  import ExUnit.CaptureIO
-
   @intcode_tests [
     {
       "1",
@@ -47,109 +45,137 @@ defmodule IntcodeTest do
 
   test "input equals - position mode" do
     program = fn i ->
-      Intcode.run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], testing: true, test_input: i)
+      Day05.test("3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8", i)
     end
 
-    program_1 = fn -> program.(["8\n"]) end
-    assert capture_io(program_1) == "1\n"
+    program_1 = fn -> program.([8]) end
+    {_, out} = program_1.()
+    assert out == [1]
 
-    program_2 = fn -> program.(["7\n"]) end
-    assert capture_io(program_2) == "0\n"
+    program_2 = fn -> program.([7]) end
+    {_, out} = program_2.()
+    assert out == [0]
 
-    program_3 = fn -> program.(["9\n"]) end
-    assert capture_io(program_3) == "0\n"
+    program_3 = fn -> program.([9]) end
+    {_, out} = program_3.()
+    assert out == [0]
   end
 
   test "input less than - position mode" do
     program = fn i ->
-      Intcode.run([3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], testing: true, test_input: i)
+      Day05.test("3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8", i)
     end
 
-    program_1 = fn -> program.(["8\n"]) end
-    assert capture_io(program_1) == "0\n"
+    program_1 = fn -> program.([8]) end
+    {_, out} = program_1.()
+    assert out == [0]
 
-    program_2 = fn -> program.(["7\n"]) end
-    assert capture_io(program_2) == "1\n"
+    program_2 = fn -> program.([7]) end
+    {_, out} = program_2.()
+    assert out == [1]
 
-    program_3 = fn -> program.(["9\n"]) end
-    assert capture_io(program_3) == "0\n"
+    program_3 = fn -> program.([9]) end
+    {_, out} = program_3.()
+    assert out == [0]
   end
 
   test "input equals - immediate mode" do
     program = fn i ->
-      Intcode.run([3, 3, 1108, -1, 8, 3, 4, 3, 99], testing: true, test_input: i)
+      Day05.test("3,3,1108,-1,8,3,4,3,99", i)
     end
 
-    program_1 = fn -> program.(["8\n"]) end
-    assert capture_io(program_1) == "1\n"
+    program_1 = fn -> program.([8]) end
+    {_, out} = program_1.()
+    assert out == [1]
 
-    program_2 = fn -> program.(["7\n"]) end
-    assert capture_io(program_2) == "0\n"
+    program_2 = fn -> program.([7]) end
+    {_, out} = program_2.()
+    assert out == [0]
 
-    program_3 = fn -> program.(["9\n"]) end
-    assert capture_io(program_3) == "0\n"
+    program_3 = fn -> program.([9]) end
+    {_, out} = program_3.()
+    assert out == [0]
   end
 
   test "input less than - immediate mode" do
     program = fn i ->
-      Intcode.run([3, 3, 1107, -1, 8, 3, 4, 3, 99], testing: true, test_input: i)
+      Day05.test("3,3,1107,-1,8,3,4,3,99", i)
     end
 
-    program_1 = fn -> program.(["8\n"]) end
-    assert capture_io(program_1) == "0\n"
+    program_1 = fn -> program.([8]) end
+    {_, out} = program_1.()
+    assert out == [0]
 
-    program_2 = fn -> program.(["7\n"]) end
-    assert capture_io(program_2) == "1\n"
+    program_2 = fn -> program.([7]) end
+    {_, out} = program_2.()
+    assert out == [1]
 
-    program_3 = fn -> program.(["9\n"]) end
-    assert capture_io(program_3) == "0\n"
+    program_3 = fn -> program.([9]) end
+    {_, out} = program_3.()
+    assert out == [0]
   end
 
   # @tag :pending
   test "jump - position mode" do
     program = fn i ->
-      Intcode.run([3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], testing: true, test_input: i)
+      #           0 1  2 3  4  5 6  7  8  9 10 11 12 13 14 15
+      Day05.test("3,12,6,12,15,1,13,14,13,4,13,99,-1,0, 1, 9", i)
     end
 
-    program_1 = fn -> program.(["0\n"]) end
-    assert capture_io(program_1) == "0\n"
+    program_1 = fn -> program.([0]) end
+    {_, out} = program_1.()
+    assert out == [0]
 
-    program_2 = fn -> program.(["1\n"]) end
-    assert capture_io(program_2) == "1\n"
+    program_2 = fn -> program.([1]) end
+    {_, out} = program_2.()
+    assert out == [1]
 
-    program_3 = fn -> program.(["-1\n"]) end
-    assert capture_io(program_3) == "1\n"
+    program_3 = fn -> program.([-1]) end
+    {_, out} = program_3.()
+    assert out == [1]
   end
 
   test "jump - immediate mode" do
     program = fn i ->
-      Intcode.run([3,3,1105,-1,9,1101,0,0,12,4,12,99,1], testing: true, test_input: i)
+      Day05.test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", i)
     end
 
-    program_1 = fn -> program.(["0\n"]) end
-    assert capture_io(program_1) == "0\n"
+    program_1 = fn -> program.([0]) end
+    {_, out} = program_1.()
+    assert out == [0]
 
-    program_2 = fn -> program.(["1\n"]) end
-    assert capture_io(program_2) == "1\n"
+    program_2 = fn -> program.([1]) end
+    {_, out} = program_2.()
+    assert out == [1]
 
-    program_3 = fn -> program.(["-1\n"]) end
-    assert capture_io(program_3) == "1\n"
+    program_3 = fn -> program.([-1]) end
+    {_, out} = program_3.()
+    assert out == [1]
   end
 
   test "larger" do
-    code = [3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99]
-
+    code = """
+      3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99
+      """
     program = fn i ->
-      Intcode.run(code, testing: true, test_input: i)
+      Day05.test(code, i)
     end
 
-    program_1 = fn -> program.(["7\n"]) end
-    assert capture_io(program_1) == "999\n"
+    program_1 = fn -> program.([7]) end
+    {_, out} = program_1.()
+    assert out == [999]
 
-    program_2 = fn -> program.(["8\n"]) end
-    assert capture_io(program_2) == "1000\n"
+    program_2 = fn -> program.([8]) end
+    {_, out} = program_2.()
+    assert out == [1000]
 
-    program_3 = fn -> program.(["9\n"]) end
-    assert capture_io(program_3) == "1001\n"
+    program_3 = fn -> program.([9]) end
+    {_, out} = program_3.()
+    assert out == [1001]
+  end
+
+  test "final" do
+    {_, out} = Day05.default()
+    assert out == [8346937]
   end
 end
