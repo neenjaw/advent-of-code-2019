@@ -20,8 +20,7 @@ defmodule PhaseAmplifier do
     |>Enum.max_by(fn {_p, n} -> n end)
   end
 
-
-
+  # Feedback version
 
   def feedback_sequence(program, [a,b,c,d,e], v \\0) do
     # get instructions
