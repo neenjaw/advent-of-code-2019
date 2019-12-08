@@ -52,7 +52,6 @@ defmodule PhaseAmplifier do
           receive_result_or_loop(pid)
         end
     end
-
   end
 
   def find_max_feedback_amplification(program) do
