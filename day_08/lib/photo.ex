@@ -53,23 +53,9 @@ defmodule Photo do
     photo
   end
 
-  def draw_photo_as_png(%Photo{} = photo) do
-    %{width: w, height: h, layers: [_l]} = merge_layers(photo)
+  def draw_photo_as_bmp(%Photo{} = photo) do
+    %{width: _w, height: _h, layers: [_l]} = merge_layers(photo)
 
-    png_header =
-      <<0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A>> <> # png header
-      <<13 :: size(32)>> <> # length
-      <<"IHDR">> <>
-      <<w :: size(32)>> <>
-      <<h :: size(32)>> <>
-      <<8 :: size(8)>> <> # bit depth
-      <<6 :: size(8)>> <> # color type
-      <<0 :: size(8)>> <> # compression
-      <<0 :: size(8)>> <> # filter
-      <<0 :: size(8)>>    # interlace
 
-    png =
-      png_header <>
-      <<:erlang.crc32(png_header) :: size(32)>>
   end
 end
