@@ -65,29 +65,53 @@ defmodule Intcode do
 
   defp get_mode_from_code(0), do: :position
   defp get_mode_from_code(1), do: :immediate
+  defp get_mode_from_code(2), do: :relative
+
+
+  defp command(_op_agent, [99, _, _, _], opts) do
+    if opts.debug, do: IO.puts(">>> halt")
+    :halt
+  end
 
   defp command(op_agent, [command, p1_mode, p2_mode, p3_mode], opts) do
-    [p1, p2, p3] =
+    param_range = command_params_range(command)
+
+    params =
       # Create a tuple to determine the purpose / use of each param
       [
-        List.duplicate(command, 3),
-        1..3,
+        param_range,
         [p1_mode, p2_mode, p3_mode],
-        IA.get_op_params(op_agent)
+        IA.get_op_params(op_agent, param_range)
       ]
       |> Enum.zip()
       |> Enum.map(fn
-        {cmd, n, :position, param} -> get_param_for_command(op_agent, cmd, n, param)
-        {_cmd, _, :immediate, param} -> param
+        {n, :position, param} -> get_param_for_command(op_agent, command, n, param)
+        {_, :immediate, param} -> param
+        {n, :relative, param} -> get_relative_param_for_command(op_agent, command, n, param)
       end)
 
-    do_command(op_agent, [command, p1, p2, p3], opts)
+    do_command(op_agent, [command | params], opts)
   end
 
+  def command_params_range(n), do: 1..do_command_params_range(n)
+
+  def do_command_params_range(1), do: 3
+  def do_command_params_range(2), do: 3
+  def do_command_params_range(3), do: 1
+  def do_command_params_range(4), do: 1
+  def do_command_params_range(5), do: 2
+  def do_command_params_range(6), do: 2
+  def do_command_params_range(7), do: 3
+  def do_command_params_range(8), do: 3
+  def do_command_params_range(9), do: 1
+
   def get_param_for_command(_op_agent, cmd, 3, param) when cmd in [1, 2, 7, 8], do: param
-  # def get_param_for_command(_op_agent, cmd, 2, param) when cmd in [5, 6], do: param
   def get_param_for_command(_op_agent, cmd, 1, param) when cmd in [3], do: param
   def get_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_position(op_agent, position)
+
+  def get_relative_param_for_command(op_agent, 3, 1, position), do: IA.get_relative_position(op_agent, position)
+  def get_relative_param_for_command(op_agent, cmd, 3, position) when cmd in [1, 2, 7, 8], do: IA.get_relative_position(op_agent, position)
+  def get_relative_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_relative_position(op_agent, position)
 
   # add
   defp do_command(op_agent, [1, x, y, r], opts) do
@@ -118,7 +142,7 @@ defmodule Intcode do
   end
 
   # get input
-  defp do_command(op_agent, [3, r, _, _], %{get_input: get} = opts) do
+  defp do_command(op_agent, [3, r], %{get_input: get} = opts) do
     if opts.debug, do: IO.puts(">>> get")
 
     value = get.()
@@ -129,7 +153,7 @@ defmodule Intcode do
   end
 
   # write
-  defp do_command(op_agent, [4, x, _, _], %{output: put} = opts) do
+  defp do_command(op_agent, [4, x], %{output: put} = opts) do
     if opts.debug, do: IO.puts(">>> write")
 
     x |> put.()
@@ -139,7 +163,7 @@ defmodule Intcode do
   end
 
   # jump-if-true
-  defp do_command(op_agent, [5, x, r, _], opts) do
+  defp do_command(op_agent, [5, x, r], opts) do
     if opts.debug, do: IO.puts(">>> jump-if-true")
 
     if x != 0 do
@@ -152,7 +176,7 @@ defmodule Intcode do
   end
 
   # jump-if-false
-  defp do_command(op_agent, [6, x, r, _], opts) do
+  defp do_command(op_agent, [6, x, r], opts) do
     if opts.debug, do: IO.puts(">>> jump-if-false")
 
     if x == 0 do
@@ -192,9 +216,11 @@ defmodule Intcode do
     :cont
   end
 
-  defp do_command(_op_agent, [99, _, _, _], opts) do
-    if opts.debug, do: IO.puts(">>> halt")
+  defp do_command(op_agent, [9, x], opts) do
+    if opts.debug, do: IO.puts(">>> set relative base")
 
-    :halt
+    IA.shift_relative_base(op_agent, x)
+    IA.advance_pointer(op_agent, 2)
+    :cont
   end
 end

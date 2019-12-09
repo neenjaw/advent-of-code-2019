@@ -1,6 +1,13 @@
 defmodule IntcodeTest do
   use ExUnit.Case
 
+  def trim_trailing_zeroes(l) do
+    l
+    |> Enum.reverse()
+    |> Enum.drop_while(fn x -> x == 0 end)
+    |> Enum.reverse()
+  end
+
   @intcode_tests [
     {
       "1",
@@ -38,11 +45,13 @@ defmodule IntcodeTest do
     @name name
     @left left
     @right right
+    @tag :basic
     test "program #{@name}" do
-      assert Intcode.run(@left) == @right
+      assert Intcode.run(@left) |> trim_trailing_zeroes() == @right
     end
   end
 
+  @tag :mod
   test "input equals - position mode" do
     program = fn i ->
       VMRunner.test("3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8", i)
@@ -61,6 +70,7 @@ defmodule IntcodeTest do
     assert out == [0]
   end
 
+  @tag :mod
   test "input less than - position mode" do
     program = fn i ->
       VMRunner.test("3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8", i)
@@ -79,6 +89,7 @@ defmodule IntcodeTest do
     assert out == [0]
   end
 
+  @tag :mod
   test "input equals - immediate mode" do
     program = fn i ->
       VMRunner.test("3,3,1108,-1,8,3,4,3,99", i)
@@ -97,6 +108,7 @@ defmodule IntcodeTest do
     assert out == [0]
   end
 
+  @tag :mod
   test "input less than - immediate mode" do
     program = fn i ->
       VMRunner.test("3,3,1107,-1,8,3,4,3,99", i)
@@ -116,6 +128,7 @@ defmodule IntcodeTest do
   end
 
   # @tag :pending
+  @tag :mod
   test "jump - position mode" do
     program = fn i ->
       #           0 1  2 3  4  5 6  7  8  9 10 11 12 13 14 15
@@ -135,6 +148,7 @@ defmodule IntcodeTest do
     assert out == [1]
   end
 
+  @tag :mod
   test "jump - immediate mode" do
     program = fn i ->
       VMRunner.test("3,3,1105,-1,9,1101,0,0,12,4,12,99,1", i)
@@ -153,6 +167,7 @@ defmodule IntcodeTest do
     assert out == [1]
   end
 
+  @tag :mod
   test "larger" do
     code = """
       3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99
@@ -174,6 +189,7 @@ defmodule IntcodeTest do
     assert out == [1001]
   end
 
+  @tag :complex
   test "final" do
     {_, out} = VMRunner.default5()
     assert out == [8346937]
