@@ -33,7 +33,7 @@ defmodule Intcode.Agent do
     |> Enum.map(fn i -> get_at_position(op_agent, c + i) end)
   end
 
-  def get_relative_position(op_agent, position) do
+  def get_rel_position(op_agent, position) do
     %{op_map: _ops, relative_base: b} = Agent.get(op_agent, & &1)
 
     position + b
@@ -43,7 +43,7 @@ defmodule Intcode.Agent do
     do_get_at_position(op_agent, position)
   end
 
-  def get_at_relative_position(op_agent, position) do
+  def get_at_rel_position(op_agent, position) do
     do_get_at_position(op_agent, position, relative: true)
   end
 

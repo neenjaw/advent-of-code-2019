@@ -46,11 +46,16 @@ defmodule Intcode do
   end
 
   defp handle_command(op_agent, command_code, opts) do
+    # Initially, the integer command code is passed as:
+    #   ABCDE where any leading zero may be omitted.
+    #   So we split the code to digits, then reverse it, append
+    #   omitted zeroes, then parse the code from the parameter
+    #   modes
     [e, d, c, b, a | _] =
       command_code
       |> Integer.digits()
       |> Enum.reverse()
-      |> Kernel.++(List.duplicate(0, 4))
+      |> Kernel.++([0,0,0,0])
 
     command =
       [d, e]
@@ -66,7 +71,6 @@ defmodule Intcode do
   defp get_mode_from_code(0), do: :position
   defp get_mode_from_code(1), do: :immediate
   defp get_mode_from_code(2), do: :relative
-
 
   defp command(_op_agent, [99, _, _, _], opts) do
     if opts.debug, do: IO.puts(">>> halt")
@@ -87,7 +91,7 @@ defmodule Intcode do
       |> Enum.map(fn
         {n, :position, param} -> get_param_for_command(op_agent, command, n, param)
         {_, :immediate, param} -> param
-        {n, :relative, param} -> get_relative_param_for_command(op_agent, command, n, param)
+        {n, :relative, param} -> get_rel_param_for_command(op_agent, command, n, param)
       end)
 
     do_command(op_agent, [command | params], opts)
@@ -109,9 +113,9 @@ defmodule Intcode do
   def get_param_for_command(_op_agent, cmd, 1, param) when cmd in [3], do: param
   def get_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_position(op_agent, position)
 
-  def get_relative_param_for_command(op_agent, 3, 1, position), do: IA.get_relative_position(op_agent, position)
-  def get_relative_param_for_command(op_agent, cmd, 3, position) when cmd in [1, 2, 7, 8], do: IA.get_relative_position(op_agent, position)
-  def get_relative_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_relative_position(op_agent, position)
+  def get_rel_param_for_command(op_agent, 3, 1, position), do: IA.get_rel_position(op_agent, position)
+  def get_rel_param_for_command(op_agent, cmd, 3, position) when cmd in [1, 2, 7, 8], do: IA.get_rel_position(op_agent, position)
+  def get_rel_param_for_command(op_agent, _cmd, _n, position), do: IA.get_at_rel_position(op_agent, position)
 
   # add
   defp do_command(op_agent, [1, x, y, r], opts) do

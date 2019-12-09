@@ -36,6 +36,7 @@ defmodule BoostTest do
     assert VMRunner.test(program, [1]) |> elem(1) == [3429606717]
   end
 
+  @tag :day9_long
   test "part 2" do
     program = VMRunner.day_9_instructions()
     assert VMRunner.test(program, [2]) |> elem(1) == [33679]
