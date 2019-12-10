@@ -1,4 +1,4 @@
-defmodule ExBmp do
+defmodule Photo.Bmp do
   @moduledoc """
   Defines a struct representing a decoded bmp file.
   """
