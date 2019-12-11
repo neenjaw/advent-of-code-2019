@@ -119,31 +119,31 @@ defmodule AsteroidMapTest do
     assert CeresMonitor.solve(@part1) == {{11, 13}, 227}
   end
 
-  # test "destruction" do
-  #   map = @map5
-  #   c = {11, 13}
-  #   result = CeresMonitor.destroy_asteroids(map, c)
-  #   record = result.meta.destroy_record
+  test "destruction" do
+    map = @map5
+    c = {11, 13}
+    record = CeresMonitor.solve_2(c, map)
 
-  #   assert Map.get(record, 1) == {11, 12}
-  #   assert Map.get(record, 2) == {12, 1}
-  #   assert Map.get(record, 3) == {12, 2}
-  #   assert Map.get(record, 10) == {12, 8}
-  #   assert Map.get(record, 20) == {16, 0}
-  #   assert Map.get(record, 50) == {16, 9}
-  #   assert Map.get(record, 100) == {10, 16}
-  #   assert Map.get(record, 199) == {9, 6}
-  #   assert Map.get(record, 200) == {8, 2}
-  #   assert Map.get(record, 201) == {10, 9}
-  #   assert Map.get(record, 299) == {11, 1}
-  # end
+    assert Map.get(record, 1) == {11, 12}
+    assert Map.get(record, 2) == {12, 1}
+    assert Map.get(record, 3) == {12, 2}
+    assert Map.get(record, 10) == {12, 8}
+    assert Map.get(record, 20) == {16, 0}
+    assert Map.get(record, 50) == {16, 9}
+    assert Map.get(record, 100) == {10, 16}
+    assert Map.get(record, 199) == {9, 6}
+    assert Map.get(record, 200) == {8, 2}
+    assert Map.get(record, 201) == {10, 9}
+    assert Map.get(record, 299) == {11, 1}
+  end
 
-  # test "part 2" do
-  #   map = @part1
-  #   c = {11, 13}
-  #   result = CeresMonitor.destroy_asteroids(map, c)
-  #   record = result.meta.destroy_record
+  test "part 2" do
+    map = @part1
+    c = {11, 13}
+    record = CeresMonitor.solve_2(c, map)
 
-  #   Map.get(record, 200) |> IO.inspect(label: "147")
-  # end
+    {x, y} = Map.get(record, 200)
+
+    assert x*100+y == 604
+  end
 end

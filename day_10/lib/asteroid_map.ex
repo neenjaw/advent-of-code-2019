@@ -6,10 +6,6 @@ defmodule AsteroidMap do
   @asteroid "#"
   @station "X"
 
-  defguard is_coordinate(xy)
-           when is_tuple(xy) and tuple_size(xy) == 2 and is_integer(elem(xy, 0)) and
-                  is_integer(elem(xy, 1))
-
   def parse_string_map(map_as_string) do
     map_as_string
     |> String.split("\n", trim: true)
@@ -64,7 +60,7 @@ defmodule AsteroidMap do
   end
 
   def angle(dx, dy) do
-    deg = (:math.atan2(dy, dx) * 180.0 / :math.pi()) + 90
+    deg = (:math.atan2(dy, dx) * 180.0 / :math.pi()) - 90
 
     deg =
       if deg < 0 do
